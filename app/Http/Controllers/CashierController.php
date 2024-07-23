@@ -21,17 +21,18 @@ class CashierController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nama_pengunjung' => 'required|string|max:255',
             'products' => 'required|array',
             'products.*.id' => 'required|exists:products,id',
             'products.*.quantity' => 'required|integer|min:1',
             'amount_paid' => 'required|numeric|min:0',
+            'discount' => 'nullable|numeric|min:0|max:100',
         ]);
 
         $totalAmount = 0;
         $purchasedProducts = [];
-        foreach ($request->input('products') as $productData) {
+        foreach ($validated['products'] as $productData) {
             $product = Product::find($productData['id']);
             $totalAmount += $product->price * $productData['quantity'];
             $purchasedProducts[] = [
@@ -41,58 +42,67 @@ class CashierController extends Controller
             ];
         }
 
-        $amountPaid = $request->amount_paid;
+        // Apply discount
+        $discount = $validated['discount'] ?? 0;
+        $discountAmount = $totalAmount * $discount / 100;
+        $totalAmount -= $discountAmount;
+
+        $amountPaid = $validated['amount_paid'];
         $change = $amountPaid - $totalAmount;
-        if ($change < 0) {
-            $change = 0;
-        }
+        $change = max(0, $change);
 
         DB::beginTransaction();
         try {
             $purchase = Purchase::create([
-                'nama_pengunjung' => $request->nama_pengunjung,
+                'nama_pengunjung' => $validated['nama_pengunjung'],
                 'total_amount' => $totalAmount,
                 'amount_paid' => $amountPaid,
                 'change' => $change,
+                'discount' => $discount,
             ]);
 
-            foreach ($request->input('products') as $productData) {
+            foreach ($validated['products'] as $productData) {
+                $product = Product::find($productData['id']);
                 PurchaseItem::create([
                     'purchase_id' => $purchase->id,
                     'product_id' => $productData['id'],
                     'quantity' => $productData['quantity'],
-                    'unit_price' => Product::find($productData['id'])->price,
-                    'total_price' => Product::find($productData['id'])->price * $productData['quantity'],
+                    'unit_price' => $product->price,
+                    'total_price' => $product->price * $productData['quantity'],
                 ]);
             }
 
             DB::commit();
 
-            return redirect()->route('receipt.generate')->with([
-                'success' => 'Transaction completed successfully',
+            // Store data in session
+            session()->put('receipt_data', [
+                'nama_pengunjung' => $validated['nama_pengunjung'],
                 'purchasedProducts' => $purchasedProducts,
                 'totalAmount' => $totalAmount,
                 'amountPaid' => $amountPaid,
                 'change' => $change,
-                'nama_pengunjung' => $request->nama_pengunjung,
+                'discount' => $discount,
+                'discountAmount' => $discountAmount,
             ]);
+
+            return redirect()->route('receipt.generate')->with('success', 'Transaction completed successfully');
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->withErrors(['error' => 'Transaction failed']);
         }
     }
 
-
-    public function generateReceipt(Request $request)
+    public function generateReceipt()
     {
-        $purchasedProducts = session('purchasedProducts');
-        $totalAmount = session('totalAmount');
-        $change = session('change');
-        $amountPaid = session('amountPaid');
-        $nama_pengunjung = session('nama_pengunjung');
+        $data = session()->get('receipt_data', []);
 
-        return view('cashier.receipt', compact('purchasedProducts', 'totalAmount', 'change', 'amountPaid', 'nama_pengunjung'));
+        // Clear the session data
+        session()->forget('receipt_data');
+
+        return view('cashier.receipt', $data);
     }
+
+
 
 
     public function show()
@@ -109,6 +119,8 @@ class CashierController extends Controller
         $totalAmount = $purchase->total_amount;
         $amountPaid = $purchase->amount_paid;
         $change = $amountPaid - $totalAmount;
+        $discount = $purchase->discount;
+        $discountAmount = $totalAmount * ($discount / 100);
 
         return view('cashier.receipt', [
             'nama_pengunjung' => $purchase->nama_pengunjung,
@@ -122,6 +134,8 @@ class CashierController extends Controller
             'totalAmount' => $totalAmount,
             'amountPaid' => $amountPaid,
             'change' => $change,
+            'discount' => $discount,
+            'discountAmount' => $discountAmount,
         ]);
     }
 }

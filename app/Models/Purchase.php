@@ -16,6 +16,7 @@ class Purchase extends Model
         'total_amount',
         'amount_paid',
         'change',
+        'discount',
     ];
 
     public function purchaseItems()

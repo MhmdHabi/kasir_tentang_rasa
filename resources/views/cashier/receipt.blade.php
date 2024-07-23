@@ -2,11 +2,11 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Struk Pembelanjaan</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Roboto', sans-serif;
@@ -85,12 +85,22 @@
                             <div>
                                 <p class="mb-1">{{ $product['name'] }}</p>
                                 <p style="margin-left: 20px;" class="mb-1">{{ $product['quantity'] }} x Rp
-                                    {{ number_format($product['price'], 0, ',', '.') }} <span style="float: right;">Rp
+                                    {{ number_format($product['price'], 0, ',', '.') }}
+                                    <span style="float: right;">Rp
                                         {{ number_format($product['price'] * $product['quantity'], 0, ',', '.') }}</span>
                                 </p>
                             </div>
                         @endforeach
                         <div class="separator">=========================================</div>
+                        <div class="d-flex justify-content-between w-100 mt-1">
+                            <span class="label text-end">Diskon (%)</span>
+                            <span class="value text-end">: {{ number_format($discount ?? 0) }}%</span>
+                        </div>
+                        <div class="d-flex justify-content-between w-100 mt-1">
+                            <span class="label text-end">Diskon (Rp)</span>
+                            <span class="value text-end">: Rp
+                                {{ number_format($discountAmount ?? 0, 0, ',', '.') }}</span>
+                        </div>
                         <div class="d-flex justify-content-between w-100 mt-1">
                             <span class="label text-end">Total</span>
                             <span class="value text-end">: Rp {{ number_format($totalAmount, 0, ',', '.') }}</span>
@@ -108,14 +118,12 @@
                     <div class="card-footer text-center">
                         <p class="mb-1">IG : tentangrasa1211</p>
                         <p class="mb-1">WA : 0932822293</p>
-                        <p>Terima Kasih telah berbelanja di Tentang Rasa</p>
+                        <p>Terima Kasih telah berbelanja di Tentang Rasa!</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 
 </html>

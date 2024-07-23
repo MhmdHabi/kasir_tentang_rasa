@@ -63,6 +63,13 @@
                 <div id="selected-products"></div>
             </div>
 
+            <!-- Discount -->
+            <div class="mb-3">
+                <label for="discount" class="form-label">Diskon (%)</label>
+                <input type="number" name="discount" id="discount" class="form-control" placeholder="0" min="0"
+                    max="100">
+            </div>
+
             <!-- Uang Pembayaran dan Total Harga -->
             <div class="row mb-3">
                 <div class="col-md-6">
@@ -183,6 +190,8 @@
 
             function calculateTotal() {
                 let total = selectedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0);
+                let discount = parseFloat(document.getElementById('discount').value) || 0;
+                total = total - (total * discount / 100);
                 document.getElementById('total_amount').value = formatCurrency(total);
                 calculateChange();
             }
@@ -193,7 +202,7 @@
                 let change = amountPaid - totalAmount;
 
                 document.getElementById('change').value = amountPaid >= totalAmount ? formatCurrency(change) :
-                    'Rp0';
+                'Rp0';
             }
 
             document.getElementById('amount_paid').addEventListener('input', function() {
@@ -204,6 +213,8 @@
                     calculateChange();
                 }
             });
+
+            document.getElementById('discount').addEventListener('input', calculateTotal);
 
             document.getElementById('print-receipt').addEventListener('click', function() {
                 let form = document.getElementById('purchase-form');

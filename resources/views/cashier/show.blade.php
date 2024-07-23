@@ -11,7 +11,7 @@
                 Tidak ada data penjualan.
             </div>
         @else
-            <div class="table-responsive"> <!-- Make the table responsive -->
+            <div class="table-responsive">
                 <table id="purchasesTable" class="table table-bordered">
                     <thead class="table-primary" style="font-size: 0.875rem;">
                         <tr>
