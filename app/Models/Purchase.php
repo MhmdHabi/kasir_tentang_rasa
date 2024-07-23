@@ -16,7 +16,9 @@ class Purchase extends Model
         'total_amount',
         'amount_paid',
         'change',
-        'discount',
+        'discount_type',
+        'discount_rupiah',
+        'discount_persen',
     ];
 
     public function purchaseItems()

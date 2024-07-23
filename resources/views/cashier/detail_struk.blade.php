@@ -32,19 +32,33 @@
             text-align: left;
         }
 
-        .card,
         .card-header,
         .card-footer {
+            text-align: center;
+        }
+
+        .table-bordered {
             border: none;
         }
 
-        .card-body {
-            padding: 0;
+        .table-bordered th,
+        .table-bordered td {
+            border: none;
         }
 
-        .card-header,
-        .card-footer {
-            padding: 10px 15px;
+        .table th,
+        .table td {
+            text-align: left;
+        }
+
+        .table td {
+            padding-right: 10px;
+        }
+
+        .alamat {
+            text-align: center;
+            max-width: 400px;
+            margin: 0 auto;
         }
     </style>
 </head>
@@ -53,14 +67,14 @@
     <div class="container mt-5">
         <div class="row justify-content-center">
             <div class="col-md-4">
-                <div class="card">
+                <div class="">
                     <div class="card-header text-center">
                         <h3 class="mb-0 fs-4">Tentang Rasa</h3>
                         <p class="mb-0 alamat">Jl. Sunan Kalijaga No.60, Simpang III Sipin, Kec. Kota Baru, Kota Jambi,
                             Jambi 36129</p>
                     </div>
-                    <div class="separator">======================================</div>
-                    <div class="card-body">
+                    <div class="separator">=========================================</div>
+                    <div class="">
                         <div class="d-flex justify-content-between w-100">
                             <span class="judul">Nama Tamu</span>
                             <span class="value">: {{ $nama_pengunjung }}</span>
@@ -73,7 +87,7 @@
                             <span class="judul">Jam</span>
                             <span class="value">: {{ now()->format('H:i:s') }}</span>
                         </div>
-                        <div class="separator">======================================</div>
+                        <div class="separator">=========================================</div>
                         @foreach ($purchasedProducts as $product)
                             <div>
                                 <p class="mb-1">{{ $product['name'] }}</p>
@@ -84,20 +98,28 @@
                                 </p>
                             </div>
                         @endforeach
-                        <div class="separator">======================================</div>
-                        <div class="d-flex justify-content-between w-100 mt-1">
-                            <span class="label text-end">Diskon (%)</span>
-                            <span class="value text-end">: {{ number_format($discountPersen ?? 0, 2) }}%</span>
-                        </div>
-                        <div class="d-flex justify-content-between w-100 mt-1">
-                            <span class="label text-end">Diskon (Rp)</span>
-                            <span class="value text-end">: Rp
-                                {{ number_format($discountRupiah ?? 0, 0, ',', '.') }}</span>
-                        </div>
+                        <div class="separator">=========================================</div>
+                        @if ($discountType === 'percentage')
+                            <div class="d-flex justify-content-between w-100 mt-1">
+                                <span class="label text-end">Diskon (%)</span>
+                                <span class="value text-end">: {{ number_format($discountPercentage ?? 0, 0) }}%</span>
+                            </div>
+                        @elseif ($discountType === 'amount')
+                            <div class="d-flex justify-content-between w-100 mt-1">
+                                <span class="label text-end">Diskon (Rp)</span>
+                                <span class="value text-end">: Rp
+                                    {{ number_format($discount ?? 0, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between w-100 mt-1">
+                                <span class="label text-end">Diskon (%)</span>
+                                <span class="value text-end">:
+                                    {{ number_format($discountPercentage ?? 0, 2, ',', '.') }}%</span>
+                            </div>
+                        @endif
                         <div class="d-flex justify-content-between w-100 mt-1">
                             <span class="label text-end">Total</span>
                             <span class="value text-end">: Rp
-                                {{ number_format($totalAmount, 0, ',', '.') }}</span>
+                                {{ number_format($totalAmount ?? 0, 0, ',', '.') }}</span>
                         </div>
                         <div class="d-flex justify-content-between w-100 mt-1">
                             <span class="label text-end">Jumlah Bayar</span>
@@ -108,7 +130,7 @@
                             <span class="value text-end">: Rp {{ number_format($change, 0, ',', '.') }}</span>
                         </div>
                     </div>
-                    <div class="separator">======================================</div>
+                    <div class="separator">=========================================</div>
                     <div class="card-footer text-center">
                         <p class="mb-1">IG : tentangrasa1211</p>
                         <p class="mb-1">WA : 0932822293</p>

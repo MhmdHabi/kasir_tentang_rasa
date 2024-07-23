@@ -12,6 +12,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         @endif
+
         @if ($errors->any())
             <div class="alert alert-danger alert-dismissible fade show" role="alert">
                 <ul>
@@ -22,9 +23,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         @endif
-
-        <!-- Notification Messages -->
-        <div id="notification" class="mb-3"></div>
 
         <form action="{{ route('cashier.store') }}" method="POST" id="purchase-form">
             @csrf
@@ -65,9 +63,28 @@
 
             <!-- Discount -->
             <div class="mb-3">
-                <label for="discount" class="form-label">Diskon (%)</label>
-                <input type="number" name="discount" id="discount" class="form-control" placeholder="0" min="0"
-                    max="100">
+                <label for="discount_type" class="form-label">Jenis Diskon</label>
+                <select id="discount_type" name="discount_type" class="form-select" required>
+                    <option value="">Pilih Jenis Diskon</option>
+                    <option value="percentage">Diskon (%)</option>
+                    <option value="amount">Diskon (Rp)</option>
+                </select>
+            </div>
+
+            <div id="discount-fields">
+                <!-- Discount Percentage -->
+                <div class="mb-3" id="discount_percentage_field" style="display: none;">
+                    <label for="discount_percentage" class="form-label">Diskon (%)</label>
+                    <input type="text" name="discount_percentage" id="discount_percentage" class="form-control"
+                        placeholder="0" value="{{ old('discount_percentage') }}">
+                </div>
+
+                <!-- Discount Amount -->
+                <div class="mb-3" id="discount_amount_field" style="display: none;">
+                    <label for="discount_amount" class="form-label">Diskon (Rp)</label>
+                    <input type="text" name="discount_amount" id="discount_amount" class="form-control" placeholder="0"
+                        value="{{ old('discount_amount') }}">
+                </div>
             </div>
 
             <!-- Uang Pembayaran dan Total Harga -->
@@ -125,9 +142,9 @@
 
                     updateSelectedProducts();
                     calculateTotal();
-                    showNotification(`Product "${productName}" berhasil ditambahkan.`, 'info');
+                    showNotification(`Produk "${productName}" berhasil ditambahkan.`, 'info');
                 } else {
-                    showNotification(`Product "${productName}" sudah ditambahkan.`, 'info');
+                    showNotification(`Produk "${productName}" sudah ditambahkan.`, 'info');
                 }
 
                 productSelect.selectedIndex = 0;
@@ -183,15 +200,26 @@
                         selectedProducts.splice(index, 1);
                         updateSelectedProducts();
                         calculateTotal();
-                        showNotification(`Product "${productName}" berhasil dihapus.`, 'info');
+                        showNotification(`Produk "${productName}" berhasil dihapus.`, 'info');
                     });
                 });
             }
 
             function calculateTotal() {
                 let total = selectedProducts.reduce((sum, product) => sum + (product.price * product.quantity), 0);
-                let discount = parseFloat(document.getElementById('discount').value) || 0;
-                total = total - (total * discount / 100);
+                let discountType = document.getElementById('discount_type').value;
+                let discountPercentage = parseFloat(document.getElementById('discount_percentage').value) || 0;
+                let discountAmount = parseFloat(document.getElementById('discount_amount').value) || 0;
+
+                let totalDiscount = 0;
+                if (discountType === 'percentage') {
+                    totalDiscount = (total * discountPercentage / 100);
+                } else if (discountType === 'amount') {
+                    totalDiscount = discountAmount;
+                }
+
+                total -= totalDiscount;
+
                 document.getElementById('total_amount').value = formatCurrency(total);
                 calculateChange();
             }
@@ -202,7 +230,7 @@
                 let change = amountPaid - totalAmount;
 
                 document.getElementById('change').value = amountPaid >= totalAmount ? formatCurrency(change) :
-                'Rp0';
+                    'Rp0';
             }
 
             document.getElementById('amount_paid').addEventListener('input', function() {
@@ -214,32 +242,17 @@
                 }
             });
 
-            document.getElementById('discount').addEventListener('input', calculateTotal);
-
-            document.getElementById('print-receipt').addEventListener('click', function() {
-                let form = document.getElementById('purchase-form');
-                let formData = new FormData(form);
-
-                formData.append('selectedProducts', JSON.stringify(selectedProducts));
-                formData.append('totalAmount', unformatCurrency(document.getElementById('total_amount')
-                    .value));
-                formData.append('amountPaid', unformatCurrency(document.getElementById('amount_paid')
-                    .value));
-                formData.append('change', unformatCurrency(document.getElementById('change').value));
-
-                fetch('{{ route('receipt.generate') }}', {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => response.text())
-                    .then(html => {
-                        let receiptWindow = window.open('', '_blank');
-                        receiptWindow.document.write(html);
-                        receiptWindow.document.close();
-                        receiptWindow.print();
-                    })
-                    .catch(error => console.error('Error:', error));
+            document.getElementById('discount_type').addEventListener('change', function() {
+                let discountType = this.value;
+                document.getElementById('discount_percentage_field').style.display = discountType ===
+                    'percentage' ? 'block' : 'none';
+                document.getElementById('discount_amount_field').style.display = discountType === 'amount' ?
+                    'block' : 'none';
+                calculateTotal();
             });
+
+            document.getElementById('discount_percentage').addEventListener('input', calculateTotal);
+            document.getElementById('discount_amount').addEventListener('input', calculateTotal);
 
             function showNotification(message, type) {
                 let notificationDiv = document.getElementById('notification');

@@ -17,7 +17,9 @@ return new class extends Migration
             $table->decimal('total_amount', 10, 2);
             $table->decimal('amount_paid', 10, 2);
             $table->decimal('change', 10, 2);
-            $table->decimal('discount', 5, 2)->nullable();
+            $table->enum('discount_type', ['percentage', 'amount'])->default('amount');
+            $table->decimal('discount_rupiah', 15, 2)->nullable();
+            $table->decimal('discount_persen', 5, 2)->nullable();
             $table->timestamps();
         });
     }

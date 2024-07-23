@@ -18,18 +18,21 @@ class CashierController extends Controller
 
         return view('cashier.index', compact('products', 'totalAmount', 'change'));
     }
-
     public function store(Request $request)
     {
+        // Validasi input dari request
         $validated = $request->validate([
             'nama_pengunjung' => 'required|string|max:255',
             'products' => 'required|array',
             'products.*.id' => 'required|exists:products,id',
             'products.*.quantity' => 'required|integer|min:1',
             'amount_paid' => 'required|numeric|min:0',
-            'discount' => 'nullable|numeric|min:0|max:100',
+            'discount_type' => 'nullable|in:percentage,amount',
+            'discount_percentage' => 'nullable|numeric|min:0|max:100',
+            'discount_amount' => 'nullable|numeric|min:0',
         ]);
 
+        // Hitung total amount sebelum diskon
         $totalAmount = 0;
         $purchasedProducts = [];
         foreach ($validated['products'] as $productData) {
@@ -42,23 +45,41 @@ class CashierController extends Controller
             ];
         }
 
-        // Apply discount
-        $discount = $validated['discount'] ?? 0;
-        $discountAmount = $totalAmount * $discount / 100;
-        $totalAmount -= $discountAmount;
+        // Terapkan diskon
+        $discountType = $validated['discount_type'];
+        $discountPercentage = $validated['discount_percentage'] ?? 0;
+        $discountAmount = $validated['discount_amount'] ?? 0;
+
+        $totalDiscount = 0;
+        $discountPersen = 0;
+        $discountRupiah = 0;
+
+        if ($discountType === 'percentage') {
+            $discountPersen = $discountPercentage;
+            $totalDiscount = ($totalAmount * $discountPercentage / 100);
+            $discountRupiah = $totalDiscount;
+        } elseif ($discountType === 'amount') {
+            $discountRupiah = $discountAmount;
+            $totalDiscount = $discountAmount;
+            $discountPersen = ($discountAmount / $totalAmount) * 100;
+        }
+
+        $totalAmountAfterDiscount = $totalAmount - $totalDiscount;
 
         $amountPaid = $validated['amount_paid'];
-        $change = $amountPaid - $totalAmount;
+        $change = $amountPaid - $totalAmountAfterDiscount;
         $change = max(0, $change);
 
         DB::beginTransaction();
         try {
             $purchase = Purchase::create([
                 'nama_pengunjung' => $validated['nama_pengunjung'],
-                'total_amount' => $totalAmount,
+                'total_amount' => $totalAmountAfterDiscount,
                 'amount_paid' => $amountPaid,
                 'change' => $change,
-                'discount' => $discount,
+                'discount_type' => $discountType,
+                'discount_rupiah' => $discountRupiah,
+                'discount_persen' => $discountPersen,
             ]);
 
             foreach ($validated['products'] as $productData) {
@@ -74,15 +95,16 @@ class CashierController extends Controller
 
             DB::commit();
 
-            // Store data in session
+            // Simpan data ke session
             session()->put('receipt_data', [
                 'nama_pengunjung' => $validated['nama_pengunjung'],
                 'purchasedProducts' => $purchasedProducts,
-                'totalAmount' => $totalAmount,
+                'totalAmount' => $totalAmountAfterDiscount,
                 'amountPaid' => $amountPaid,
                 'change' => $change,
-                'discount' => $discount,
-                'discountAmount' => $discountAmount,
+                'discountType' => $discountType,
+                'discountRupiah' => $discountRupiah,
+                'discountPersen' => $discountPersen,
             ]);
 
             return redirect()->route('receipt.generate')->with('success', 'Transaction completed successfully');
@@ -91,6 +113,7 @@ class CashierController extends Controller
             return back()->withErrors(['error' => 'Transaction failed']);
         }
     }
+
 
     public function generateReceipt()
     {
@@ -102,27 +125,38 @@ class CashierController extends Controller
         return view('cashier.receipt', $data);
     }
 
-
-
-
     public function show()
     {
         $purchases = Purchase::with('purchaseItems.product')->get();
 
         return view('cashier.show', compact('purchases'));
     }
-
     public function struk($id)
     {
+
         $purchase = Purchase::with('purchaseItems.product')->findOrFail($id);
 
-        $totalAmount = $purchase->total_amount;
-        $amountPaid = $purchase->amount_paid;
-        $change = $amountPaid - $totalAmount;
-        $discount = $purchase->discount;
-        $discountAmount = $totalAmount * ($discount / 100);
+        $discountType = $purchase->discount_type;
+        $discountPercentage = $purchase->discount_persen;
+        $fixedDiscountAmount = $purchase->discount_rupiah;
 
-        return view('cashier.receipt', [
+        // Calculate the total amount and discount
+        $totalAmount = $purchase->total_amount;
+        $discountAmount = 0;
+
+        if ($discountType === 'percentage') {
+            $discountAmount = $totalAmount * ($discountPercentage / 100);
+        } elseif ($discountType === 'amount') {
+            $discountAmount = $fixedDiscountAmount;
+            $discountPercentage = ($discountAmount / $totalAmount) * 100;
+        }
+
+        $totalAmountAfterDiscount = $totalAmount - $discountAmount;
+
+        $amountPaid = $purchase->amount_paid;
+        $change = $amountPaid - $totalAmountAfterDiscount;
+
+        return view('cashier.detail_struk', [
             'nama_pengunjung' => $purchase->nama_pengunjung,
             'purchasedProducts' => $purchase->purchaseItems->map(function ($item) {
                 return [
@@ -131,11 +165,12 @@ class CashierController extends Controller
                     'price' => $item->unit_price
                 ];
             }),
-            'totalAmount' => $totalAmount,
+            'totalAmount' => $totalAmountAfterDiscount,
             'amountPaid' => $amountPaid,
             'change' => $change,
-            'discount' => $discount,
-            'discountAmount' => $discountAmount,
+            'discount' => $discountAmount,
+            'discountType' => $discountType,
+            'discountPercentage' => $discountPercentage,
         ]);
     }
 }
