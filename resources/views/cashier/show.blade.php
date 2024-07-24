@@ -11,6 +11,11 @@
                 Tidak ada data penjualan.
             </div>
         @else
+            <!-- Export to Excel button -->
+            <a href="{{ route('export.data') }}">
+                <button type="submit" class="btn btn-success mb-3">Export to Excel</button>
+            </a>
+
             <div class="table-responsive">
                 <table id="purchasesTable" class="table table-bordered">
                     <thead class="table-primary" style="font-size: 0.875rem;">

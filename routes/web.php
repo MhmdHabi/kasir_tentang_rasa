@@ -36,3 +36,5 @@ Route::post('/kasir', [CashierController::class, 'store'])->name('cashier.store'
 Route::get('/struk/penjualan', [CashierController::class, 'generateReceipt'])->name('receipt.generate');
 Route::get('/receipt/{id}', [CashierController::class, 'struk'])->name('receipt.show');
 Route::get('/data_penjualan', [CashierController::class, 'show'])->name('cashier.show');
+
+Route::get('/export/data_penjualan', [CashierController::class, 'exportData'])->name('export.data');

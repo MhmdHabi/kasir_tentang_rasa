@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\DataPenjualanExport;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Maatwebsite\Excel\Facades\Excel;
 
 class CashierController extends Controller
 {
@@ -172,5 +174,9 @@ class CashierController extends Controller
             'discountType' => $discountType,
             'discountPercentage' => $discountPercentage,
         ]);
+    }
+    public function exportData(Request $request)
+    {
+        return Excel::download(new DataPenjualanExport($request), 'Data Penjualan.xlsx');
     }
 }
